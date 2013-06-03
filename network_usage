@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+
+PADDING = 40
+IFCONFIG_SECTION_LINES = 6 # this might be 7 or some other value depending on your machine
+if ARGV.length == 0
+  puts "No network device selected, assuming eth0. Example: network_usage eth1"
+  ARGV[0] = "eth0"
+end
+
+puts "SPEED (Kbps)                    RECEIVED | SPEED (Kbps)               TRANSMITTED"
+last_received = last_transmitted = 0
+while true do
+  network_data = `/sbin/ifconfig | grep #{ARGV[0]} -A #{IFCONFIG_SECTION_LINES} | grep "RX bytes"`
+  matched = network_data.match(/RX bytes:(\d+).+ TX bytes:(\d+)/)
+  receive_speed = matched[1].to_i - last_received
+  transmit_speed = matched[2].to_i - last_transmitted
+  last_received = matched[1].to_i
+  last_transmitted = matched[2].to_i
+  rx_kbps = receive_speed / 1024
+  tx_kbps = transmit_speed / 1024
+  rx_chars = PADDING - matched[1].length - rx_kbps.to_s.length
+  tx_chars = PADDING - matched[2].length - tx_kbps.to_s.length
+  received_padded = "#{rx_kbps}#{" " * rx_chars}#{matched[1]}"
+  transmitted_padded = "#{tx_kbps}#{" " * tx_chars}#{matched[2]}"
+  puts "#{received_padded} #{transmitted_padded}"
+  sleep 1
+end
